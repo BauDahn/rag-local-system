@@ -1,0 +1,13 @@
+models:
+  embedding: "BAAI/bge-small-en-v1.5"        # Light model
+  llm: "microsoft/Phi-3-mini-4k-instruct"    # Small powerful local LLM
+  quantization: "4bit"                       # Efficient memory load
+
+parameters:
+  chunk_size: 512
+  chunk_overlap: 50
+  temperature: 0.1                       
+
+paths:
+  raw_data: "data/raw/"
+  vector_store: "data/vector_db/"
