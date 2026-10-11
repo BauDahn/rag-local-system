@@ -1,74 +1,74 @@
+# src/ingest.py
+
 import os
 from typing import List
 from pypdf import PdfReader
+from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-def load_and_split_documents(raw_data_path: str, chunk_size: int, chunk_overlap: int) -> List[str]:
+
+def load_and_split_documents(
+    raw_data_path: str, chunk_size: int, chunk_overlap: int, min_letters: int = 120
+) -> List[Document]:
     """
-    Scrapes a local directory for PDF files, extracts their raw text, 
-    and splits them into structured chunks based on character constraints.
+    Reads every PDF in a directory, extracts text page by page and splits it into
+    chunks. Each chunk keeps its source file and page number as metadata so answers
+    can cite where they came from.
     """
     if not os.path.exists(raw_data_path):
         raise FileNotFoundError(f"The specified path does not exist: {raw_data_path}")
-        
-    pdf_files = [f for f in os.listdir(raw_data_path) if f.endswith('.pdf')]
+
+    pdf_files = sorted(f for f in os.listdir(raw_data_path) if f.lower().endswith(".pdf"))
     if not pdf_files:
         print(f"[Warning] No PDF files found in {raw_data_path}. Please add documents to parse.")
         return []
 
-    combined_text = ""
-    
-    # 1. Scrape and extract text from all available PDFs
+    pages: List[Document] = []
     for pdf_file in pdf_files:
-        file_path = os.path.join(raw_data_path, pdf_file)
         print(f"[Ingest] Extracting text from: {pdf_file}")
-        
         try:
-            reader = PdfReader(file_path)
-            for page_num, page in enumerate(reader.pages):
-                page_text = page.extract_text()
-                if page_text:
-                    combined_text += page_text + "\n"
+            reader = PdfReader(os.path.join(raw_data_path, pdf_file))
+            for page_num, page in enumerate(reader.pages, start=1):
+                text = page.extract_text()
+                if text and text.strip():
+                    pages.append(Document(page_content=text, metadata={"source": pdf_file, "page": page_num}))
         except Exception as e:
-            print(f"[Error] Failed to read {pdf_file}: {str(e)}")
+            print(f"[Error] Failed to read {pdf_file}: {e}")
 
-    if not combined_text.strip():
+    if not pages:
         print("[Warning] Total extracted text is empty.")
         return []
 
-    # 2. Initialize the scientific character splitter
-    # It intelligently splits by paragraphs, sentences, and words to avoid cutting information in half
-    text_splitter = RecursiveCharacterTextSplitter(
+    # Splitting per page keeps chunks from crossing document boundaries
+    splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
         length_function=len,
-        separators=["\n\n", "\n", " ", ""]
+        separators=["\n\n", "\n", " ", ""],
     )
+    chunks = splitter.split_documents(pages)
 
-    # 3. Execute chunking
-    chunks = text_splitter.split_text(combined_text)
-    print(f"[Ingest] Successfully generated {len(chunks)} text chunks.")
-    
+    # Drop near-empty chunks (title pages, page numbers, "!" separators): they carry
+    # no information but can still win a similarity search.
+    before = len(chunks)
+    chunks = [c for c in chunks if sum(ch.isalpha() for ch in c.page_content) >= min_letters]
+    print(f"[Ingest] Dropped {before - len(chunks)} low-content chunks.")
+    print(f"[Ingest] Generated {len(chunks)} chunks from {len(pages)} pages in {len(pdf_files)} file(s).")
     return chunks
 
+
 if __name__ == "__main__":
-    # Quick isolated module test using default fallbacks
-    print("Testing Ingest Module locally...")
     import yaml
-    
-    # Load configuration parameters
+
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
-        
-    try:
-        sample_chunks = load_and_split_documents(
-            raw_data_path=config["paths"]["raw_data"],
-            chunk_size=config["parameters"]["chunk_size"],
-            chunk_overlap=config["parameters"]["chunk_overlap"]
-        )
-        if sample_chunks:
-            print("\n--- Sample Chunk Preview ---")
-            print(sample_chunks[0])
-            print("----------------------------")
-    except Exception as e:
-        print(f"Test failed: {e}")
+
+    sample = load_and_split_documents(
+        config["paths"]["raw_data"],
+        config["parameters"]["chunk_size"],
+        config["parameters"]["chunk_overlap"],
+    )
+    if sample:
+        print("\n--- Sample Chunk Preview ---")
+        print(sample[0].metadata)
+        print(sample[0].page_content)

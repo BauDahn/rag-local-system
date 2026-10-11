@@ -1,12 +1,16 @@
 models:
-  embedding: "BAAI/bge-small-en-v1.5"        # Light model
-  llm: "microsoft/Phi-3-mini-4k-instruct"    # Small powerful local LLM
-  quantization: "4bit"                       # Efficient memory load
+  embedding: "BAAI/bge-small-en-v1.5"        # Light embedding model (English)
+  llm: "microsoft/Phi-3-mini-4k-instruct"    # Small local LLM
+  quantization: "4bit"                       # "4bit" (needs NVIDIA GPU) or "none"
+  embedding_device: "cpu"                    # "cpu" or "cuda"
 
 parameters:
   chunk_size: 512
   chunk_overlap: 50
-  temperature: 0.1                       
+  temperature: 0                             # 0 = greedy / deterministic (best for faithfulness)
+  top_k: 3                                   # Chunks retrieved per question
+  max_distance: 0.8                          # Discard chunks farther than this (null = off). In-scope questions scored ~0.67, off-topic ones 0.89+
+  max_new_tokens: 256
 
 paths:
   raw_data: "data/raw/"

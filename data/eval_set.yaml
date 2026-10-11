@@ -1,0 +1,12 @@
+# Retrieval test set for "The Little Prince". A question passes if any top-k chunk
+# contains at least one of its keywords.
+- question: "What does the narrator draw when he is six years old?"
+  keywords: ["boa constrictor", "boa"]
+- question: "What planet does the little prince come from?"
+  keywords: ["B-612", "asteroid"]
+- question: "What did the prince say about the sheep?"
+  keywords: ["sheep"]
+- question: "Who does the little prince meet that tells him about taming?"
+  keywords: ["fox", "tame"]
+- question: "What does the prince take care of on his planet?"
+  keywords: ["rose", "baobab", "volcano"]

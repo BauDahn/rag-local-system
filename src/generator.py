@@ -1,112 +1,119 @@
 # src/generator.py
+
 import os
-import yaml
 import warnings
+from dataclasses import dataclass
+from typing import List
 
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline, logging
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceBgeEmbeddings
+import torch
+from langchain_core.documents import Document
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, logging
+
+from src.embed import build_embeddings, load_config, load_vector_store
 
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 logging.set_verbosity_error()
 
+SYSTEM_PROMPT = (
+    "You are a strict assistant that answers questions about a document. Use ONLY facts "
+    "that are explicitly written in the provided context. Never add details from your own "
+    "knowledge or imagination, and never guess. If the context does not explicitly answer "
+    "the question, reply exactly: 'I do not know based on the provided documents.' "
+    "Otherwise answer in at most three sentences."
+)
+
+
+@dataclass
+class RAGAnswer:
+    answer: str
+    sources: List[Document]
+
+    def format_sources(self) -> str:
+        seen = []
+        for doc in self.sources:
+            ref = f"{doc.metadata.get('source', '?')} (page {doc.metadata.get('page', '?')})"
+            if ref not in seen:
+                seen.append(ref)
+        return ", ".join(seen)
+
+
+class RAGPipeline:
+    """
+    Loads the embedding model, vector store and LLM once, so many questions can be
+    answered without paying the model start-up cost each time.
+    """
+
+    def __init__(self, config_path: str = "config.yaml"):
+        self.config = load_config(config_path)
+        models, params = self.config["models"], self.config["parameters"]
+
+        print("[Pipeline] Loading vector store and embedding model...")
+        self.db = load_vector_store(self.config, build_embeddings(self.config))
+
+        print(f"[Pipeline] Loading LLM: {models['llm']}")
+        self.tokenizer = AutoTokenizer.from_pretrained(models["llm"])
+        self.model = AutoModelForCausalLM.from_pretrained(models["llm"], **self._model_kwargs())
+        self.model.eval()
+
+        self.top_k = params.get("top_k", 3)
+        self.max_new_tokens = params.get("max_new_tokens", 256)
+        self.temperature = params.get("temperature", 0.0)
+        self.max_distance = params.get("max_distance")
+
+    def _model_kwargs(self) -> dict:
+        wants_4bit = self.config["models"].get("quantization") == "4bit"
+        if wants_4bit and torch.cuda.is_available():
+            return {
+                "quantization_config": BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_compute_dtype=torch.float16,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_use_double_quant=True,
+                ),
+                "device_map": "auto",
+            }
+        if wants_4bit:
+            print("[Pipeline] 4-bit quantization needs a CUDA GPU; falling back to unquantized weights.")
+        return {"torch_dtype": torch.float16 if torch.cuda.is_available() else torch.float32, "device_map": "auto"}
+
+    def ask(self, query: str) -> RAGAnswer:
+        scored = self.db.similarity_search_with_score(query, k=self.top_k)
+        # Chroma returns a distance (lower = more similar). Chunks beyond max_distance
+        # are treated as irrelevant so the LLM is never asked to answer from noise.
+        docs = [d for d, dist in scored if self.max_distance is None or dist <= self.max_distance]
+        if not docs:
+            return RAGAnswer("I do not know based on the provided documents.", [])
+
+        context = "\n---\n".join(doc.page_content for doc in docs)
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"},
+        ]
+        prompt = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        inputs = self.tokenizer(prompt, return_tensors="pt", add_special_tokens=False).to(self.model.device)
+
+        gen_kwargs = {"max_new_tokens": self.max_new_tokens, "do_sample": self.temperature > 0}
+        if self.temperature > 0:
+            gen_kwargs["temperature"] = self.temperature
+
+        with torch.no_grad():
+            output = self.model.generate(**inputs, pad_token_id=self.tokenizer.eos_token_id, **gen_kwargs)
+
+        new_tokens = output[0][inputs["input_ids"].shape[1]:]
+        return RAGAnswer(self.tokenizer.decode(new_tokens, skip_special_tokens=True).strip(), docs)
+
+
 def run_rag_pipeline(query: str, config_path: str = "config.yaml") -> str:
-    """
-    Retrieves relevant text context from the local database and generates a 
-    strictly bounded answer using a local quantized Hugging Face LLM.
-    """
-    # 1. Load the central system configuration
-    with open(config_path, "r") as f:
-        config = yaml.safe_load(f)
+    """One-shot convenience wrapper (loads everything per call; prefer RAGPipeline)."""
+    return RAGPipeline(config_path).ask(query).answer
 
-    # 2. Re-initialize our working local vector store
-    embeddings = HuggingFaceBgeEmbeddings(
-        model_name=config["models"]["embedding"],
-        model_kwargs={'device': 'cpu'},
-        encode_kwargs={'normalize_embeddings': True}
-    )
-    
-    db = Chroma(
-        persist_directory=config["paths"]["vector_store"], 
-        embedding_function=embeddings
-    )
-
-    # 3. Search the local database for matching text chunks
-    print(f"[Generator] Searching database for context relevant to: '{query}'")
-    matching_docs = db.similarity_search(query, k=3)
-    context = "\n---\n".join([doc.page_content for doc in matching_docs])
-
-    # 4. Configure advanced 4-bit quantization weights
-    print(f"[Generator] Loading quantized LLM: {config['models']['llm']}")
-    quantization_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype="float16",
-        bnb_4bit_quant_type="nf4", # Normalized Float 4: optimized for neural network weights
-        bnb_4bit_use_double_quant=True
-    )
-
-    # 5. Load the tokenizer and quantized model from local cache/Hugging Face
-    tokenizer = AutoTokenizer.from_pretrained(config["models"]["llm"])
-    model = AutoModelForCausalLM.from_pretrained(
-        config["models"]["llm"],
-        quantization_config=quantization_config,
-        device_map="auto" # Dynamically maps model layers across available CPU/GPU memory
-    )
-
-    # 6. Design the strict context-bounded instruction prompt
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are a strict technical assistant. Answer the user's question USING ONLY "
-                "the provided context sections. If the answer cannot be found in the context, "
-                "say 'I do not know'. Do not make up or extrapolate any information."
-            )
-        },
-        {
-            "role": "user",
-            "content": f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
-        }
-    ]
-
-    # Format the prompt using the model's exact architectural chat template
-    prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-
-    # 7. Execute local inference using a pipeline wrapper
-    generator = pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer
-    )
-
-    outputs = generator(
-        prompt,
-        max_new_tokens=256,
-        temperature=config["parameters"]["temperature"],
-        do_sample=True
-    )
-
-    # Clean and extract only the new assistant response text
-    generated_text = outputs[0]["generated_text"]
-    response = generated_text[len(prompt):].strip()
-
-    return response
 
 if __name__ == "__main__":
-    # Test the entire retrieval-generation loop end-to-end
-    print("Testing Complete Quantized RAG Pipeline...")
-    
-    sample_query = "What does the narrator say about the character's costume?"
-    
-    try:
-        answer = run_rag_pipeline(sample_query)
-        print("\n================ SYSTEM ANSWER ================")
-        print(answer)
-        print("===============================================")
-    except Exception as e:
-        print(f"\n[Execution Failure]: {str(e)}")
+    result = RAGPipeline().ask("What does the narrator say about the character's costume?")
+    print(result.answer)
+    print("Sources:", result.format_sources())

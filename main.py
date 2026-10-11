@@ -1,65 +1,68 @@
 # main.py
 
 import argparse
-import yaml
-from src.ingest import load_and_split_documents
-from src.embed import create_vector_store
-from src.generator import run_rag_pipeline
+
+from src.embed import load_config
+
 
 def main():
-    # Setup CLI Argument Parser
     parser = argparse.ArgumentParser(
-        description="Local Guarded RAG System - Secure On-Premise Document Intelligence"
+        description="Local RAG System - question answering over your own PDFs, fully on-premise"
     )
-    
-    # Define execution modes
     parser.add_argument(
-        "--mode", 
-        choices=["ingest", "query"], 
+        "--mode",
+        choices=["ingest", "query"],
         required=True,
-        help="Choose 'ingest' to process raw data directory or 'query' to prompt the system."
+        help="'ingest' indexes the PDFs in the raw data directory; 'query' asks questions about them.",
     )
-    
-    # Optional custom query flag
     parser.add_argument(
         "--question",
         type=str,
         default=None,
-        help="The technical question to pass into the system when running in query mode."
+        help="Single question (query mode). If omitted, starts an interactive session.",
     )
-
     args = parser.parse_args()
-
-    # Load parameters to pass across modules
-    with open("config.yaml", "r") as f:
-        config = yaml.safe_load(f)
+    config = load_config()
 
     if args.mode == "ingest":
-        print("\n=== STARTING DATA INGESTION WORKFLOW ===")
+        from src.ingest import load_and_split_documents
+        from src.embed import create_vector_store
+
+        print("\n=== INGESTION ===")
         chunks = load_and_split_documents(
             raw_data_path=config["paths"]["raw_data"],
             chunk_size=config["parameters"]["chunk_size"],
-            chunk_overlap=config["parameters"]["chunk_overlap"]
+            chunk_overlap=config["parameters"]["chunk_overlap"],
         )
         if chunks:
             create_vector_store(chunks)
-        print("=========================================\n")
+        return
 
-    elif args.mode == "query":
-        # Fallback if no specific question flag was provided
-        query_text = args.question
-        if not query_text:
-            query_text = input("\nEnter your document query: ")
-        
-        print("\n=== INVOKING RETRIEVAL INFERENCE ENGINE ===")
-        try:
-            answer = run_rag_pipeline(query_text)
-            print("\n---------------- SYSTEM RESPONSE ----------------")
-            print(answer)
-            print("-------------------------------------------------")
-        except Exception as e:
-            print(f"[Runtime Error]: Pipeline inference failed -> {e}")
-        print("===========================================\n")
+    from src.generator import RAGPipeline
+
+    try:
+        pipeline = RAGPipeline()
+    except Exception as e:
+        print(f"[Error] Could not start the pipeline (did you run --mode ingest first?): {e}")
+        return
+
+    def answer(question: str):
+        result = pipeline.ask(question)
+        print(f"\n{result.answer}")
+        if result.sources:
+            print(f"\nSources: {result.format_sources()}")
+
+    if args.question:
+        answer(args.question)
+        return
+
+    print("\nInteractive mode. Type 'exit' to quit.")
+    while True:
+        question = input("\nQuestion> ").strip()
+        if question.lower() in {"exit", "quit", ""}:
+            break
+        answer(question)
+
 
 if __name__ == "__main__":
     main()
