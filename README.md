@@ -45,7 +45,7 @@ Answers are grounded in the retrieved text and come with **source citations** (f
 ## Getting started
 
 ```bash
-git clone <this-repo> && cd rag-local-system
+git clone https://github.com/BauDahn/rag-local-system.git && cd rag-local-system
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
