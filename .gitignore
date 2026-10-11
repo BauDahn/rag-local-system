@@ -5,3 +5,4 @@ venv/
 .env
 data/vector_db/
 .DS_Store
+data/raw/*.pdf

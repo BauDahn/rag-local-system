@@ -41,7 +41,7 @@ Answers are grounded in the retrieved text and come with **source citations** (f
 │   └── evaluate.py      # Retrieval evaluation (hit rate, MRR)
 └── data/
     ├── raw/             # Put your PDFs here
-    └── eval_set.yaml    # Sample evaluation questions
+    └── eval_set.yaml    # Example evaluation questions (written for The Little Prince)
 ```
 
 ## Getting started
@@ -52,7 +52,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-1. Put one or more PDFs in `data/raw/` (a sample is included).
+1. Put one or more PDFs in `data/raw/`. No documents are bundled with the repo (PDFs there are git-ignored). The example outputs and `data/eval_set.yaml` in this README were produced with an English edition of *The Little Prince*; to reproduce them, supply your own legally obtained copy, or replace the evaluation questions with ones about your own documents.
 2. Build the index. Re-running replaces the previous index, so nothing is duplicated:
    ```bash
    python main.py --mode ingest
@@ -103,7 +103,7 @@ python -m src.evaluate
 
 It reports **hit rate@k** (is a relevant chunk in the top-k?) and **MRR** (how high does the first relevant chunk rank?). Add your own questions to the YAML file to benchmark your documents.
 
-Current result on the bundled sample (*The Little Prince*, 240 chunks, `top_k=3`):
+Result on the author's test document (*The Little Prince*, 218 chunks, `top_k=3`; the book itself is not included in this repo):
 
 | Metric | Score |
 |---|---|
