@@ -1,5 +1,7 @@
 # Local RAG System
 
+> 🚧 **Work in progress.** This is an actively developed learning project. Core ingestion, retrieval, generation and evaluation work, but answer quality still has known limitations (see [Known limitations](#known-limitations) and the [Roadmap](#roadmap)).
+
 A fully **local, private Retrieval-Augmented Generation (RAG)** pipeline for asking questions about your own PDF documents. No API keys, no cloud services: documents, embeddings and the language model all stay on your machine.
 
 Answers are grounded in the retrieved text and come with **source citations** (file and page). When the documents don't contain the answer, the model is instructed to say *"I do not know"* instead of inventing one.
