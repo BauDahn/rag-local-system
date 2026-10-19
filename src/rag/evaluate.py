@@ -8,8 +8,10 @@ chunks contains an expected keyword (hit rate) and at which rank the first one a
 effect of each stage is visible.
 
 With --answers it also runs the full pipeline: questions marked `answerable: false` must
-be refused, and answerable ones are checked by an LLM judge for faithfulness to the
-fragments the model cited.
+be refused, answerable ones must contain one of their `expected` words (answer accuracy,
+independent of any LLM), and an LLM judge additionally checks faithfulness to the
+fragments the model cited. The judge is the same model that answers, so treat that number
+as a weak signal.
 
 Usage: python -m src.rag.evaluate [--answers] [--eval-set path/to/eval_set.yaml]
 """
@@ -77,6 +79,7 @@ def evaluate_answers(eval_path=DEFAULT_EVAL_SET, config_path: Optional[str] = No
     cases = load_cases(eval_path)
 
     refused_ok, refused_total = 0, 0
+    correct, answerable_total = 0, 0
     faithful, faithful_total = 0, 0
     for case in cases:
         result = pipeline.ask(case["question"])
@@ -86,10 +89,13 @@ def evaluate_answers(eval_path=DEFAULT_EVAL_SET, config_path: Optional[str] = No
             print(f"[{'OK  ' if not result.answerable else 'FAIL'}] should refuse: {case['question']}")
             continue
 
+        answerable_total += 1
         if not result.answerable:
-            faithful_total += 1
-            print(f"[FAIL] refused an answerable question: {case['question']}")
+            print(f"[REFUSED] {case['question']}")
             continue
+
+        is_correct = contains_keyword(result.answer, case["expected"]) if case.get("expected") else None
+        correct += bool(is_correct)
 
         evidence = "\n\n".join(h.chunk.page_content for h in result.sources) or "(no fragment was cited)"
         verdict = pipeline.llm.chat_json(
@@ -102,13 +108,17 @@ def evaluate_answers(eval_path=DEFAULT_EVAL_SET, config_path: Optional[str] = No
         )
         faithful_total += 1
         faithful += bool(verdict.get("supported"))
-        print(f"[{'OK  ' if verdict.get('supported') else 'FAIL'}] {case['question']}\n        {result.answer}")
+        tag = {True: "OK  ", False: "WRONG", None: "?   "}[is_correct]
+        print(f"[{tag}] {case['question']}\n        {result.answer}")
 
     metrics = {
         "refusal_accuracy": refused_ok / refused_total if refused_total else None,
-        "faithfulness": faithful / faithful_total if faithful_total else None,
+        "answer_accuracy": correct / answerable_total if answerable_total else None,
+        "refused_answerable": (answerable_total - faithful_total) / answerable_total if answerable_total else None,
+        "faithfulness_self_judged": faithful / faithful_total if faithful_total else None,
     }
-    print("\n" + ", ".join(f"{k}: {v:.2f}" for k, v in metrics.items() if v is not None))
+    print(f"\n{refused_total} unanswerable, {answerable_total} answerable questions")
+    print(", ".join(f"{k}: {v:.2f}" for k, v in metrics.items() if v is not None))
     return metrics
 
 

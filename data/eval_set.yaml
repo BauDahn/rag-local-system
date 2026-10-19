@@ -1,25 +1,155 @@
-# Evaluation set for "The Little Prince".
-# - Retrieval: a question passes if any top-k chunk contains one of its keywords (whole word).
-# - `answerable: false` marks questions the document cannot answer; the system must refuse them.
+# Evaluation set for "The Little Prince" (Katherine Woods translation).
+#
+# Fields:
+#   question     The question asked.
+#   keywords     Retrieval check: a question passes if any top-k chunk contains one of these
+#                (whole-word, case-insensitive). Use phrases specific to the right passage.
+#   expected     Answer check (--answers): the generated answer must contain one of these
+#                (whole-word, case-insensitive). Independent of the LLM judge.
+#   answerable   false marks questions the book cannot answer; the system must refuse them.
+
+# --- The narrator and his drawings ---
 - question: "What does the narrator draw when he is six years old?"
-  keywords: ["boa constrictor", "boa"]
-- question: "What planet does the little prince come from?"
-  keywords: ["B-612", "asteroid"]
-- question: "What did the prince say about the sheep?"
-  keywords: ["sheep"]
-- question: "Who does the little prince meet that tells him about taming?"
-  keywords: ["fox", "tame"]
-- question: "What does the prince take care of on his planet?"
-  keywords: ["rose", "baobab", "volcano"]
+  keywords: ["boa constrictor"]
+  expected: ["boa", "elephant"]
+- question: "What did the grown-ups think the narrator's first drawing was?"
+  keywords: ["frightened by a hat"]
+  expected: ["hat"]
+- question: "Why did the narrator give up a career as a painter at the age of six?"
+  keywords: ["magnificent career as a painter"]
+  expected: ["grown-ups", "failure", "disheartened", "discouraged"]
+- question: "What profession did the narrator choose instead of painting?"
+  keywords: ["learned to pilot airplanes"]
+  expected: ["pilot", "airplanes"]
+- question: "Where did the narrator have an accident with his plane?"
+  keywords: ["Desert of Sahara"]
+  expected: ["Sahara", "desert"]
+- question: "What was broken in the narrator's plane?"
+  keywords: ["Something was broken in my engine"]
+  expected: ["engine"]
+
+# --- Meeting the little prince ---
+- question: "What was the first thing the little prince asked the narrator to draw?"
+  keywords: ["draw me a sheep"]
+  expected: ["sheep"]
+- question: "What did the narrator draw to satisfy the prince's demands for a sheep?"
+  keywords: ["This is only his box"]
+  expected: ["box"]
+- question: "What did the narrator promise to draw for the prince's sheep?"
+  keywords: ["muzzle for your sheep"]
+  expected: ["muzzle"]
+- question: "What did the prince ask about sheep and flowers?"
+  keywords: ["flowers that have thorns"]
+  expected: ["thorns", "flowers"]
+
+# --- The prince's planet ---
+- question: "What is the name of the asteroid the little prince came from?"
+  keywords: ["asteroid known as B"]
+  expected: ["B-612", "B- 612"]
+- question: "Who discovered the prince's asteroid, and in what year?"
+  keywords: ["Turkish astronomer"]
+  expected: ["Turkish", "1909"]
+- question: "Why did nobody believe the astronomer at first?"
+  keywords: ["Turkish costume"]
+  expected: ["costume", "dress"]
+- question: "How many volcanoes does the little prince own?"
+  keywords: ["three volcanoes"]
+  expected: ["three", "3"]
+- question: "What does the prince use his active volcanoes for?"
+  keywords: ["heating his breakfast"]
+  expected: ["breakfast", "heating", "heat"]
+- question: "What did the flower want the prince to put over her at night?"
+  keywords: ["glass globe"]
+  expected: ["globe"]
+- question: "What did the flower say she had a horror of?"
+  keywords: ["horror of drafts"]
+  expected: ["drafts"]
+
+# --- The six planets ---
+- question: "Who lived on the second planet the prince visited?"
+  keywords: ["inhabited by a conceited man"]
+  expected: ["conceited"]
+- question: "Why did the tippler drink?"
+  keywords: ["inhabited by a tippler"]
+  expected: ["forget", "ashamed"]
 - question: "What does the businessman do with the stars?"
-  keywords: ["businessman"]
+  keywords: ["I own them"]
+  expected: ["own", "owns", "count", "counts", "counting"]
 - question: "What does the lamplighter do every evening and morning?"
-  keywords: ["lamplighter", "lamp"]
+  keywords: ["lights his street lamp"]
+  expected: ["lights", "puts out", "lamp"]
+- question: "Why does the geographer not record flowers?"
+  keywords: ["because they are ephemeral"]
+  expected: ["ephemeral"]
+- question: "Which planet does the geographer advise the prince to visit?"
+  keywords: ["The planet Earth"]
+  expected: ["Earth"]
+
+# --- On Earth ---
+- question: "What was the first creature the prince met on Earth?"
+  keywords: ["said the snake"]
+  expected: ["snake"]
+- question: "How many petals did the flower in the desert have?"
+  keywords: ["three petals"]
+  expected: ["three", "3"]
+- question: "What answered the prince's greetings when he called out in the mountains?"
+  keywords: ["answered the echo"]
+  expected: ["echo"]
+- question: "How many roses did the prince find in the garden?"
+  keywords: ["five thousand"]
+  expected: ["five thousand", "5,000", "5000"]
+- question: "What does the fox ask the little prince to do?"
+  keywords: ["I am not tamed"]
+  expected: ["tame", "tamed", "taming"]
+- question: "What is the fox's secret?"
+  keywords: ["only with the heart"]
+  expected: ["heart"]
+- question: "Why does the fox like the color of the wheat fields?"
+  keywords: ["color of the wheat fields"]
+  expected: ["hair", "golden", "gold"]
+- question: "What is the prince responsible for, according to the fox?"
+  keywords: ["responsible for your rose"]
+  expected: ["rose", "tamed"]
+- question: "What does the railway switchman do?"
+  keywords: ["railway switchman"]
+  expected: ["sort", "travelers", "trains"]
+- question: "What did the merchant sell?"
+  keywords: ["quench thirst"]
+  expected: ["pills"]
+
+# --- The end ---
+- question: "What did the prince say makes the desert beautiful?"
+  keywords: ["hides a well"]
+  expected: ["well"]
+- question: "What will the stars be like for the narrator after the prince is gone?"
+  keywords: ["little bells"]
+  expected: ["bells"]
 - question: "What creature bites the little prince at the end?"
-  keywords: ["snake", "serpent"]
-- question: "What went wrong with the narrator's plane in the desert?"
-  keywords: ["engine", "desert"]
+  keywords: ["flash of yellow", "yellow snakes"]
+  expected: ["snake"]
+
+# --- Book details ---
+- question: "Who translated the book from the French?"
+  keywords: ["Katherine Woods"]
+  expected: ["Katherine Woods", "Woods"]
+- question: "To whom is the book dedicated?"
+  keywords: ["TO LEON WERTH"]
+  expected: ["Leon Werth", "Werth"]
+
+# --- Unanswerable: the book does not say ---
 - question: "What is the capital of France?"
   answerable: false
 - question: "Who won the 2018 football World Cup?"
+  answerable: false
+- question: "What is the name of the narrator's mother?"
+  answerable: false
+- question: "Which university did the narrator graduate from?"
+  answerable: false
+- question: "What is the name of the fox?"
+  answerable: false
+- question: "What is the speed of light?"
+  answerable: false
+- question: "Who painted the Mona Lisa?"
+  answerable: false
+- question: "How much does the little prince's rose cost?"
   answerable: false

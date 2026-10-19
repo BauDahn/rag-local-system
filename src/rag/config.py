@@ -1,5 +1,6 @@
 # src/rag/config.py
 
+import os
 from pathlib import Path
 from typing import Optional
 
@@ -19,5 +20,9 @@ def load_config(config_path: Optional[str] = None) -> dict:
         config = yaml.safe_load(f)
 
     base = path.resolve().parent
+    # Handy for comparing models without editing the file: RAG_LLM=qwen2.5:7b-instruct python main.py ...
+    if os.environ.get("RAG_LLM"):
+        config["models"]["llm"] = os.environ["RAG_LLM"]
+
     config["paths"] = {name: str((base / value).resolve()) for name, value in config["paths"].items()}
     return config

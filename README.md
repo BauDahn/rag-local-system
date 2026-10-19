@@ -101,30 +101,37 @@ Everything is controlled from `config.yaml`: model names and devices, chunking, 
 ```bash
 pytest                                  # unit tests, no models required
 python main.py --mode eval              # retrieval ablation (no LLM needed)
-python main.py --mode eval --answers    # also: refusals and faithfulness (needs Ollama)
+python main.py --mode eval --answers    # also: refusals and answer accuracy (needs Ollama)
+RAG_LLM=qwen2.5:7b-instruct python main.py --mode eval --answers   # compare models without editing config.yaml
 ```
 
-The retrieval evaluation runs the same questions through dense, hybrid and hybrid+rerank retrieval and reports **hit rate@k** (is a relevant chunk in the top-k?) and **MRR** (how high does the first one rank?). Keywords match whole words, so "boa" does not match "boat". With `--answers`, questions marked `answerable: false` must be refused, and an LLM judge checks that each answer is supported by the fragments it cited.
+`data/eval_set.yaml` has 46 questions about *The Little Prince*: 38 answerable and 8 the book cannot answer. Each answerable one lists `keywords` (to check retrieval) and `expected` words (to check the answer); both match whole words, so "boa" does not match "boat".
 
-Result on the author's test document (*The Little Prince*, 218 chunks, `top_k=4`, 9 answerable questions; the book itself is not included in this repo):
+- **Retrieval** runs every question through dense, hybrid and hybrid+rerank and reports **hit rate@k** (is a relevant chunk in the top-k?) and **MRR** (how high does the first one rank?).
+- **Answers** (`--answers`) report refusal accuracy (unanswerable questions must be refused), answer accuracy (the answer contains an expected word), the share of answerable questions wrongly refused, and a self-judged faithfulness score.
 
-| Retrieval | Hit rate@4 | MRR |
+Results on the author's test document (218 chunks, `top_k=4`; the book itself is not included in this repo):
+
+| Retrieval (38 questions) | Hit rate@4 | MRR |
 |---|---|---|
-| Dense only | 0.89 | 0.78 |
-| Hybrid (dense + BM25) | 0.89 | 0.69 |
-| Hybrid + rerank | 0.89 | 0.81 |
+| Dense only | 0.71 | 0.57 |
+| Hybrid (dense + BM25) | 0.79 | 0.65 |
+| Hybrid + rerank | 0.87 | 0.76 |
 
-The reranker gives the best MRR (relevant chunks rank higher) without changing the hit rate. Hybrid search alone doesn't help on this set, which is expected: its benefit shows on exact names and numbers, and this question set has few of them. With only 9 questions on one book, these numbers are indicative, not conclusive; add questions about your own documents to benchmark them.
+Each stage helps: BM25 recovers passages with exact names and phrases, and the reranker pushes the right chunk higher. (An earlier 9-question set hid the hybrid gain; the larger set shows it.)
 
-Answer evaluation (`--answers`) with `qwen2.5:3b-instruct` on the same set:
+| Answers (46 questions) | `qwen2.5:3b-instruct` | `qwen2.5:7b-instruct` |
+|---|---|---|
+| Refusal accuracy (8 unanswerable) | 1.00 | 1.00 |
+| Answer accuracy (38 answerable) | 0.74 | 0.76 |
+| Answerable questions wrongly refused | 0.03 | 0.11 |
+| Faithfulness (self-judged) | 0.54 | 0.79 |
 
-| Metric | Score |
-|---|---|
-| Refusal accuracy (2 unanswerable questions) | 1.00 |
-| Answerable questions refused | 2 of 9 |
-| Faithfulness (judged by the same 3B model) | 0.33 |
+The two models are effectively tied on accuracy, so the 3B model stays the default: it is faster and fits a 4 GB GPU (the 7B runs about half on CPU). Read these numbers with care:
 
-The faithfulness number should be read with care: the judge is the same small model that wrote the answers, and it is unreliable (for instance it rejected a correct one-word answer). Use a larger model as judge, or review answers manually, before drawing conclusions.
+- Answer accuracy is a keyword check and is conservative. Some answers marked wrong are arguable (for example "Good morning" as the echo's reply, or the stars as "wells with a rusty pulley", which is in the book), and others are real errors (the 3B model said the first thing the prince asked for was "his airplane").
+- Faithfulness is judged by the same model that writes the answers, so it is a weak signal.
+- It is one run per model with temperature 0, on a single book. Add questions about your own documents to benchmark them.
 
 ## Design decisions
 
@@ -139,16 +146,17 @@ The faithfulness number should be read with care: the judge is the same small mo
 
 ## Known limitations
 
-- **Small-model comprehension.** A 3B model sometimes refuses questions its context answers, can misattribute who said what, and is sensitive to prompt wording. The JSON schema lists `answer` before `answerable` because forcing the decision first made refusals much more frequent. A larger model (7-8B, partly offloaded to CPU on a 4 GB GPU) is the most likely improvement and has not been benchmarked here yet.
+- **Small-model comprehension.** A 3B model sometimes refuses questions its context answers, can misattribute who said what, and is sensitive to prompt wording. The JSON schema lists `answer` before `answerable` because forcing the decision first made refusals much more frequent. Moving to a 7B model did not improve accuracy on the evaluation set (see above), so model size alone is not the fix; prompt wording and better evaluation are the next levers.
 - **No relevance gate yet.** The old distance threshold was removed with the move to cosine distance and reranking; out-of-scope questions are now refused by the model (`answerable: false`). `min_rerank_score` can add a cheap pre-filter once calibrated on your documents.
-- **Small evaluation set.** See above.
+- **Evaluation covers one book.** 46 questions are enough to compare retrieval strategies, but too few to separate models that differ by a few points.
 
 ## Roadmap
 
 - [x] Reranking with a cross-encoder
 - [x] Hybrid retrieval (BM25 + dense)
 - [x] Answer-quality evaluation (refusals + LLM-judged faithfulness)
-- [ ] Calibrate `min_rerank_score` and a larger evaluation set
+- [x] Larger evaluation set (46 questions) with keyword-based answer accuracy
+- [ ] Calibrate `min_rerank_score` using that set
 - [ ] Query rewriting and parent-document retrieval
 - [ ] Support for more formats (DOCX, Markdown, HTML)
 - [ ] Simple web UI
