@@ -17,7 +17,7 @@
   keywords: ["lamplighter", "lamp"]
 - question: "What creature bites the little prince at the end?"
   keywords: ["snake", "serpent"]
-- question: "Which pilot's plane broke down in the desert?"
+- question: "What went wrong with the narrator's plane in the desert?"
   keywords: ["engine", "desert"]
 - question: "What is the capital of France?"
   answerable: false

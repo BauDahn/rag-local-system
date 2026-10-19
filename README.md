@@ -110,11 +110,21 @@ Result on the author's test document (*The Little Prince*, 218 chunks, `top_k=4`
 
 | Retrieval | Hit rate@4 | MRR |
 |---|---|---|
-| Dense only | 0.89 | 0.72 |
+| Dense only | 0.89 | 0.78 |
 | Hybrid (dense + BM25) | 0.89 | 0.69 |
 | Hybrid + rerank | 0.89 | 0.81 |
 
-The reranker raises MRR (relevant chunks rank higher) without changing the hit rate. Hybrid search alone doesn't help on this set, which is expected: its benefit shows on exact names and numbers, and this question set has few of them. With only 9 questions on one book, these numbers are indicative, not conclusive; add questions about your own documents to benchmark them.
+The reranker gives the best MRR (relevant chunks rank higher) without changing the hit rate. Hybrid search alone doesn't help on this set, which is expected: its benefit shows on exact names and numbers, and this question set has few of them. With only 9 questions on one book, these numbers are indicative, not conclusive; add questions about your own documents to benchmark them.
+
+Answer evaluation (`--answers`) with `qwen2.5:3b-instruct` on the same set:
+
+| Metric | Score |
+|---|---|
+| Refusal accuracy (2 unanswerable questions) | 1.00 |
+| Answerable questions refused | 2 of 9 |
+| Faithfulness (judged by the same 3B model) | 0.33 |
+
+The faithfulness number should be read with care: the judge is the same small model that wrote the answers, and it is unreliable (for instance it rejected a correct one-word answer). Use a larger model as judge, or review answers manually, before drawing conclusions.
 
 ## Design decisions
 
@@ -129,7 +139,7 @@ The reranker raises MRR (relevant chunks rank higher) without changing the hit r
 
 ## Known limitations
 
-- **Small-model comprehension.** A 3B model can misattribute who said what when the retrieved context mixes speakers. A larger model improves this if your hardware allows it.
+- **Small-model comprehension.** A 3B model sometimes refuses questions its context answers, can misattribute who said what, and is sensitive to prompt wording. The JSON schema lists `answer` before `answerable` because forcing the decision first made refusals much more frequent. A larger model (7-8B, partly offloaded to CPU on a 4 GB GPU) is the most likely improvement and has not been benchmarked here yet.
 - **No relevance gate yet.** The old distance threshold was removed with the move to cosine distance and reranking; out-of-scope questions are now refused by the model (`answerable: false`). `min_rerank_score` can add a cheap pre-filter once calibrated on your documents.
 - **Small evaluation set.** See above.
 

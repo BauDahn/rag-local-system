@@ -5,14 +5,16 @@ from typing import List
 
 import ollama
 
+# Property order matters: the model generates the fields in this order, and small models
+# refuse far too often when they must commit to `answerable` before writing the answer.
 ANSWER_SCHEMA = {
     "type": "object",
     "properties": {
-        "answerable": {"type": "boolean"},
         "answer": {"type": "string"},
         "citations": {"type": "array", "items": {"type": "integer"}},
+        "answerable": {"type": "boolean"},
     },
-    "required": ["answerable", "answer", "citations"],
+    "required": ["answer", "citations", "answerable"],
 }
 
 
