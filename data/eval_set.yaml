@@ -1,5 +1,6 @@
-# Retrieval test set for "The Little Prince". A question passes if any top-k chunk
-# contains at least one of its keywords.
+# Evaluation set for "The Little Prince".
+# - Retrieval: a question passes if any top-k chunk contains one of its keywords (whole word).
+# - `answerable: false` marks questions the document cannot answer; the system must refuse them.
 - question: "What does the narrator draw when he is six years old?"
   keywords: ["boa constrictor", "boa"]
 - question: "What planet does the little prince come from?"
@@ -10,3 +11,15 @@
   keywords: ["fox", "tame"]
 - question: "What does the prince take care of on his planet?"
   keywords: ["rose", "baobab", "volcano"]
+- question: "What does the businessman do with the stars?"
+  keywords: ["businessman"]
+- question: "What does the lamplighter do every evening and morning?"
+  keywords: ["lamplighter", "lamp"]
+- question: "What creature bites the little prince at the end?"
+  keywords: ["snake", "serpent"]
+- question: "Which pilot's plane broke down in the desert?"
+  keywords: ["engine", "desert"]
+- question: "What is the capital of France?"
+  answerable: false
+- question: "Who won the 2018 football World Cup?"
+  answerable: false

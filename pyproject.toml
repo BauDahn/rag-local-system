@@ -1,0 +1,28 @@
+[project]
+name = "rag-local-system"
+version = "0.2.0"
+description = "Fully local RAG over your own PDFs: hybrid retrieval, reranking and an Ollama LLM"
+requires-python = ">=3.10"
+dependencies = [
+    "ollama>=0.4",
+    "torch>=2.2",
+    "sentence-transformers>=3.0",
+    "rank-bm25>=0.2.2",
+    "langchain-core>=0.2",
+    "langchain-text-splitters>=0.2",
+    "langchain-huggingface>=0.1",
+    "langchain-chroma>=0.1.2",
+    "chromadb>=0.5",
+    "pypdf>=4.2",
+    "pyyaml>=6.0",
+    "numpy",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

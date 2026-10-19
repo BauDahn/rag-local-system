@@ -1,5 +1,6 @@
-# src/ingest.py
+# src/rag/ingest.py
 
+import hashlib
 import os
 from typing import List
 from pypdf import PdfReader
@@ -57,18 +58,11 @@ def load_and_split_documents(
     return chunks
 
 
-if __name__ == "__main__":
-    import yaml
-
-    with open("config.yaml", "r") as f:
-        config = yaml.safe_load(f)
-
-    sample = load_and_split_documents(
-        config["paths"]["raw_data"],
-        config["parameters"]["chunk_size"],
-        config["parameters"]["chunk_overlap"],
-    )
-    if sample:
-        print("\n--- Sample Chunk Preview ---")
-        print(sample[0].metadata)
-        print(sample[0].page_content)
+def hash_pdfs(raw_data_path: str) -> str:
+    """Fingerprint of the PDFs in a directory (names + contents), stored in the index manifest."""
+    digest = hashlib.sha256()
+    for pdf_file in sorted(f for f in os.listdir(raw_data_path) if f.lower().endswith(".pdf")):
+        digest.update(pdf_file.encode())
+        with open(os.path.join(raw_data_path, pdf_file), "rb") as f:
+            digest.update(f.read())
+    return digest.hexdigest()
