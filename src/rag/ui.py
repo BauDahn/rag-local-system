@@ -70,7 +70,7 @@ def build_app(pipeline=None, config_path=None):
         note = gr.Markdown()
         sources = gr.Dataframe(
             headers=["File", "Page", "Fragment"], datatype=["str", "str", "str"],
-            label="Cited sources", interactive=False, wrap=True,
+            label="Cited sources", interactive=False, wrap=True, column_widths=["14%", "8%", "78%"],
         )
         for trigger in (button.click, question.submit):
             trigger(run, inputs=question, outputs=[answer, sources, note])

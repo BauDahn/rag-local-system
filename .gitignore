@@ -8,3 +8,4 @@ data/vector_db/
 data/raw/*.pdf
 data/corpora/*/raw/*.pdf
 data/corpora/*/vector_db/
+data/**/vector_db*/

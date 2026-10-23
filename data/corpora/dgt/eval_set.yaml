@@ -11,7 +11,7 @@
 
 # --- Alcohol y pruebas (Titulo I, cap. IV) ---
 # Art. 20, p. 16
-- question: "¿Cuál es la tasa máxima de alcohol en aire espirado permitida a un conductor general, en miligramos por litro?"
+- question: "¿Cuál es la tasa máxima de alcohol en aire espirado, en miligramos por litro, para el conductor de un turismo particular (no profesional) con más de dos años de permiso?"
   keywords: ["0,25 miligramos", "aire espirado superior"]
   expected: ["0,25", "cero coma veinticinco"]
 # Art. 20, p. 16
@@ -49,7 +49,7 @@
 
 # --- Velocidad (Titulo II, cap. II) ---
 # Art. 48.1.a, p. 27
-- question: "¿Cuál es la velocidad máxima genérica para un turismo en autopista o autovía fuera de poblado?"
+- question: "¿Cuál es la velocidad máxima genérica, en km/h, para un turismo (no autobús, camión ni vehículo derivado de turismo) en autopista o autovía fuera de poblado?"
   keywords: ["Turismos", "autocaravanas", "Autopista y autovía"]
   expected: ["120", "ciento veinte"]
 # Art. 48.1.a.1.º, p. 27
@@ -91,9 +91,9 @@
   keywords: ["gran pendiente", "siete por ciento"]
   expected: ["siete por ciento", "7 por ciento", "7%", "siete", "7"]
 # Art. 62.1, p. 33
-- question: "En el orden de preferencia en ausencia de señalización cuando un vehículo tiene que dar marcha atrás, ¿qué vehículos ocupan el último lugar de la lista?"
+- question: "En el orden de preferencia en ausencia de señalización cuando un vehículo tiene que dar marcha atrás, ¿qué vehículos ocupan el último lugar de la lista, tras los vehículos de tres ruedas y las motocicletas con sidecar?"
   keywords: ["motocicletas con sidecar", "mismo tipo"]
-  expected: ["bicicletas", "motocicletas"]
+  expected: ["bicicletas"]
 # Art. 66.2, p. 34
 - question: "¿Qué inscripción llevan los paneles complementarios que señalizan las cañadas o pasos de ganado de carácter general?"
   keywords: ["cañada", "animales domésticos"]
@@ -179,13 +179,13 @@
 # Anexo I, 4.1.b (semaforos de peatones), p. 80
 - question: "¿Qué indica a los peatones que la luz verde del semáforo pase a intermitente?"
   keywords: ["intermitente", "peatón en marcha"]
-  expected: ["finalizar", "terminar", "acabar", "acaba", "agota", "rojo"]
+  expected: ["finalizar", "terminar", "acabar", "acaba", "agota", "a punto de"]
 # Anexo II, art. 2.3 (pruebas deportivas), p. 719
 - question: "¿Con cuánta antelación mínima debe presentarse la solicitud de autorización especial para celebrar una prueba deportiva en la vía?"
   keywords: ["30 días de antelación", "pruebas deportivas"]
   expected: ["30 días", "treinta días", "30", "treinta"]
 # Anexo III, apartado de velocidades (vehiculos en regimen de transporte especial), p. 727
-- question: "¿Cuál es la velocidad máxima de circulación de un vehículo en régimen de transporte especial con autorización genérica?"
+- question: "¿Cuál es la velocidad máxima de circulación de un vehículo en régimen de transporte especial con autorización genérica (no específica)?"
   keywords: ["autorización genérica"]
   expected: ["70", "setenta"]
 # Anexo III (vehiculos de anchura superior a cinco metros), p. 727

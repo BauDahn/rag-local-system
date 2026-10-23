@@ -93,10 +93,12 @@ ollama pull qwen2.5:3b-instruct
    ```bash
    python main.py --mode ui
    ```
+   ![Web UI answering a question about the Spanish traffic regulations, with the cited source](docs/img/ui.png)
 
 ### Hardware notes
 
 - The default configuration targets a small GPU (about 4 GB of VRAM): a 3B model in Ollama, with the embedder and reranker on CPU. With more VRAM, pull a larger model (e.g. `qwen2.5:7b-instruct`, `llama3.1:8b`), change `models.llm`, and optionally set `embedding_device` / `reranker_device` to `cuda`.
+- **Larger models (2+ GPUs):** the `openai` backend lets the RAG talk to a vLLM or llama.cpp server, see [docs/despliegue-modelos-grandes.md](docs/despliegue-modelos-grandes.md). This path is covered by unit tests with a mocked server only: accuracy with 32B-70B models has **not** been measured in this repo.
 - The first run downloads the embedding and reranker models from Hugging Face; after that retrieval works offline.
 
 ## Configuration
@@ -142,19 +144,19 @@ The two models are effectively tied on accuracy, so the 3B model stays the defau
 
 ### Second corpus: a Spanish legal manual
 
-To check that results are not specific to one novel, the same pipeline was run on the *Reglamento General de Circulación* (Spanish traffic regulations, 730 pages, downloaded from the BOE; not included in the repo) with `configs/dgt.yaml` (multilingual `bge-m3` embeddings and `bge-reranker-v2-m3`). Its 51 questions (42 answerable, 9 not) live in `data/corpora/dgt/eval_set.yaml`.
+To check that results are not specific to one novel, the same pipeline was run on the *Reglamento General de Circulación* (Spanish traffic regulations, 730 pages, from the BOE; not included in the repo, fetch it with `python scripts/download_dgt.py`) with `configs/dgt.yaml` (multilingual `bge-m3` embeddings and `bge-reranker-v2-m3`). Its 51 questions (42 answerable, 9 not) live in `data/corpora/dgt/eval_set.yaml`. To reproduce: `python scripts/download_dgt.py && python main.py --config configs/dgt.yaml --mode ingest && python main.py --config configs/dgt.yaml --mode eval --answers`.
 
 | Retrieval (42 questions, 557 chunks) | Hit rate@4 | MRR |
 |---|---|---|
-| Dense only | 1.00 | 0.93 |
-| Hybrid (dense + BM25) | 1.00 | 0.95 |
-| Hybrid + rerank | 1.00 | 0.96 |
+| Dense only | 1.00 | 0.94 |
+| Hybrid (dense + BM25) | 1.00 | 0.94 |
+| Hybrid + rerank | 1.00 | 0.97 |
 
 | Answers (51 questions) | `qwen2.5:3b-instruct` | `qwen2.5:7b-instruct` |
 |---|---|---|
 | Refusal accuracy (9 unanswerable) | 1.00 | 1.00 |
-| Answer accuracy (42 answerable) | 0.90 | 0.90 |
-| Faithfulness (self-judged) | 0.38 | 0.88 |
+| Answer accuracy (42 answerable) | 0.88 | 0.93 |
+| Faithfulness (self-judged) | 0.38 | 0.86 |
 
 Manuals are easier to retrieve from than a novel: every question has distinctive terms, so even dense retrieval finds the passage. Read the 1.00 with care: the questions and their `keywords` were written from the source text, which favors retrieval. The remaining answer errors are comprehension, not retrieval: the right passage was in the context but the 7B picked a neighbouring figure (80 km/h for urban motorways instead of 120 km/h; 0,15 mg/l for professional drivers instead of 0,25 mg/l for general drivers). That is the case for larger models, which the architecture now supports (see [docs/despliegue-modelos-grandes.md](docs/despliegue-modelos-grandes.md)); it has not been measured here because the author's GPU has 4 GB.
 

@@ -2,6 +2,8 @@
 
 El RAG no cambia para usar un modelo de 32B-70B: solo cambia la configuración. El LLM se sirve aparte (vLLM, llama.cpp server...) y el RAG le habla por HTTP con la API de OpenAI. Perfil de partida: `configs/empresa-multi-gpu.example.yaml`.
 
+> **Estado:** el backend `openai` está probado con tests que simulan el servidor, no contra un vLLM real, y los comandos y estimaciones de VRAM de esta guía no se han verificado en hardware. La precisión con modelos de 32B-70B no está medida en este repo: mídela con `--mode eval --answers` sobre tus documentos antes de fiarte de ella.
+
 ## 1. Levantar vLLM con 2 GPUs
 
 En el servidor (instalación y requisitos de vLLM: ver su documentación oficial):

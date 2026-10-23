@@ -34,7 +34,7 @@ Sistema RAG 100% local sobre PDFs: ingesta → híbrido (dense + BM25, RRF) → 
 - Bug: `citations` sin límite hacía que el modelo entrara en bucle de números y cortara el JSON (esto explicaba los errores de la variante v2 del prompt). Ahora `answer_schema(n)` lo limita a los fragmentos existentes.
 - Bug: el 7B escribía "answerable" dentro de `answer` al querer rechazar; `qa_es.md` ahora muestra el JSON de rechazo exacto.
 - `evaluate`: no aborta con errores del LLM, normaliza saltos de línea al comparar, y corregí 3 `expected` discutibles del eval de El Principito (eco, zorro, estrellas).
-- Resultados DGT (51 preguntas): retrieval hit@4 1.00 / MRR 0.96; respuestas 3B y 7B: rechazo 1.00, precisión 0.90, fidelidad 0.38 / 0.88.
+- Resultados DGT (51 preguntas): retrieval hit@4 1.00 / MRR 0.94 (dense), 0.94 (hybrid), 0.97 (rerank); respuestas 3B / 7B: rechazo 1.00 / 1.00, precisión 0.88 / 0.93, fidelidad 0.38 / 0.86 (medido tras corregir 5 preguntas del eval).
 - Experimentos de prompt inglés (3B): v2 descartada (0.37, era el bug de citas), v3 0.76 vs 0.74 base (ruido), no adoptada.
 
 ## Backlog
