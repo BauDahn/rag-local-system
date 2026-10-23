@@ -16,10 +16,12 @@ dependencies = [
     "pypdf>=4.2",
     "pyyaml>=6.0",
     "numpy",
+    "httpx>=0.27",  # also used by the `openai` LLM backend (vLLM, llama.cpp server...)
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+ui = ["gradio>=4"]
 
 [tool.setuptools.packages.find]
 include = ["src*"]

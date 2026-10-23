@@ -6,7 +6,7 @@ from typing import List, Optional, Sequence, Tuple
 
 from src.rag.config import load_config
 from src.rag.index import load_index
-from src.rag.llm import OllamaLLM
+from src.rag.llm import answer_schema, create_llm
 from src.rag.retrieve import Hit, Retriever
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
@@ -67,14 +67,14 @@ class RAGPipeline:
         self,
         config_path: Optional[str] = None,
         retriever: Optional[Retriever] = None,
-        llm: Optional[OllamaLLM] = None,
+        llm=None,
     ):
         self.config = load_config(config_path)
         if retriever is None:
             print("[Pipeline] Loading index and embedding model...")
             retriever = Retriever(self.config, load_index(self.config))
         self.retriever = retriever
-        self.llm = llm or OllamaLLM(self.config)
+        self.llm = llm or create_llm(self.config)
 
         prompts_cfg = self.config["prompts"]
         self.system_prompt, self.user_template = load_prompt(prompts_cfg["template"])
@@ -89,7 +89,7 @@ class RAGPipeline:
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": self.user_template.format(context=build_context(hits), question=question)},
         ]
-        reply = self.llm.chat_json(messages)
+        reply = self.llm.chat_json(messages, answer_schema(len(hits)))
 
         answer = str(reply.get("answer", "")).strip()
         if not reply.get("answerable") or not answer:

@@ -41,18 +41,21 @@ Answers are grounded in the retrieved text and come with **verified source citat
 ## Project structure
 
 ```
-├── main.py                  # CLI entry point (ingest / query / eval)
-├── config.yaml              # Models, retrieval, prompts and paths
+├── main.py                  # CLI entry point (ingest / query / eval / ui)
+├── config.yaml              # Default profile: models, retrieval, prompts and paths
+├── configs/                 # Other profiles (dgt.yaml, empresa-multi-gpu.example.yaml); use with --config
+├── docs/despliegue-modelos-grandes.md  # Running 32B-70B models on several GPUs (vLLM)
 ├── pyproject.toml           # Dependencies
 ├── src/rag/
 │   ├── config.py            # Config loading; paths resolved from the project root
 │   ├── ingest.py            # PDF loading and chunking with metadata
 │   ├── index.py             # Chroma + BM25 index, manifest, embeddings
 │   ├── retrieve.py          # dense / hybrid / hybrid+rerank retrieval
-│   ├── llm.py               # Ollama client with structured output
+│   ├── llm.py               # LLM backends (Ollama / OpenAI-compatible) + factory
 │   ├── pipeline.py          # RAGPipeline: retrieve -> prompt -> LLM -> citation check
+│   ├── ui.py                # Gradio web UI
 │   ├── evaluate.py          # Retrieval ablation and answer evaluation
-│   └── prompts/qa.md        # System and user prompt templates
+│   └── prompts/             # qa.md (English), qa_es.md (Spanish)
 ├── tests/                   # pytest suite (no models needed)
 └── data/
     ├── raw/                 # Put your PDFs here
@@ -86,6 +89,10 @@ ollama pull qwen2.5:3b-instruct
    # Interactive session (models are loaded once and reused)
    python main.py --mode query
    ```
+4. Or use the web UI (optional dependency: `pip install -e ".[ui]"`). It listens only on `127.0.0.1:7860` and shows the answer plus the cited sources (file, page, fragment); it reports clearly if Ollama is not responding or the index does not match the config:
+   ```bash
+   python main.py --mode ui
+   ```
 
 ### Hardware notes
 
@@ -94,7 +101,7 @@ ollama pull qwen2.5:3b-instruct
 
 ## Configuration
 
-Everything is controlled from `config.yaml`: model names and devices, chunking, `k_candidates` / `top_k`, `rrf_k`, `min_rerank_score`, the prompt template and fallback text, and paths. Prompts live in `src/rag/prompts/<name>.md` (sections `---system---` and `---user---`); select one with `prompts.template`. To work with non-English documents, switch the embedding model to a multilingual one (e.g. `BAAI/bge-m3`) and re-run ingestion; the manifest stops you from querying an index built with a different model.
+Everything is controlled from `config.yaml` (default profile). Other profiles live in `configs/` and are selected with `--config configs/dgt.yaml` in every mode (`--eval-set` overrides `paths.eval_set`). Relative paths are resolved against the project root. The LLM backend is `models.llm_backend: ollama | openai`; `openai` talks to any OpenAI-compatible server (vLLM with tensor parallelism, llama.cpp server), so larger models on several GPUs need only configuration: see [docs/despliegue-modelos-grandes.md](docs/despliegue-modelos-grandes.md). Settings: model names and devices, chunking, `k_candidates` / `top_k`, `rrf_k`, `min_rerank_score`, the prompt template and fallback text, and paths. Prompts live in `src/rag/prompts/<name>.md` (sections `---system---` and `---user---`); select one with `prompts.template`. To work with non-English documents, switch the embedding model to a multilingual one (e.g. `BAAI/bge-m3`) and re-run ingestion; the manifest stops you from querying an index built with a different model.
 
 ## Tests and evaluation
 
@@ -133,6 +140,26 @@ The two models are effectively tied on accuracy, so the 3B model stays the defau
 - Faithfulness is judged by the same model that writes the answers, so it is a weak signal.
 - It is one run per model with temperature 0, on a single book. Add questions about your own documents to benchmark them.
 
+### Second corpus: a Spanish legal manual
+
+To check that results are not specific to one novel, the same pipeline was run on the *Reglamento General de Circulación* (Spanish traffic regulations, 730 pages, downloaded from the BOE; not included in the repo) with `configs/dgt.yaml` (multilingual `bge-m3` embeddings and `bge-reranker-v2-m3`). Its 51 questions (42 answerable, 9 not) live in `data/corpora/dgt/eval_set.yaml`.
+
+| Retrieval (42 questions, 557 chunks) | Hit rate@4 | MRR |
+|---|---|---|
+| Dense only | 1.00 | 0.93 |
+| Hybrid (dense + BM25) | 1.00 | 0.95 |
+| Hybrid + rerank | 1.00 | 0.96 |
+
+| Answers (51 questions) | `qwen2.5:3b-instruct` | `qwen2.5:7b-instruct` |
+|---|---|---|
+| Refusal accuracy (9 unanswerable) | 1.00 | 1.00 |
+| Answer accuracy (42 answerable) | 0.90 | 0.90 |
+| Faithfulness (self-judged) | 0.38 | 0.88 |
+
+Manuals are easier to retrieve from than a novel: every question has distinctive terms, so even dense retrieval finds the passage. Read the 1.00 with care: the questions and their `keywords` were written from the source text, which favors retrieval. The remaining answer errors are comprehension, not retrieval: the right passage was in the context but the 7B picked a neighbouring figure (80 km/h for urban motorways instead of 120 km/h; 0,15 mg/l for professional drivers instead of 0,25 mg/l for general drivers). That is the case for larger models, which the architecture now supports (see [docs/despliegue-modelos-grandes.md](docs/despliegue-modelos-grandes.md)); it has not been measured here because the author's GPU has 4 GB.
+
+Two bugs found along the way that affect any small model: an unbounded `citations` array made the model loop on repeated numbers until the JSON was cut off (now bounded to the fragments that exist), and when it wanted to refuse the 7B wrote the word "answerable" inside `answer` (fixed by showing the exact refusal JSON in the Spanish prompt).
+
 ## Design decisions
 
 - **Local-first**: suited to confidential documents where sending data to a third-party API isn't an option.
@@ -147,7 +174,7 @@ The two models are effectively tied on accuracy, so the 3B model stays the defau
 ## Known limitations
 
 - **Small-model comprehension.** A 3B model sometimes refuses questions its context answers, can misattribute who said what, and is sensitive to prompt wording. The JSON schema lists `answer` before `answerable` because forcing the decision first made refusals much more frequent. Moving to a 7B model did not improve accuracy on the evaluation set (see above), so model size alone is not the fix; prompt wording and better evaluation are the next levers.
-- **No relevance gate yet.** The old distance threshold was removed with the move to cosine distance and reranking; out-of-scope questions are now refused by the model (`answerable: false`). `min_rerank_score` can add a cheap pre-filter once calibrated on your documents.
+- **No relevance gate yet.** The old distance threshold was removed with the move to cosine distance and reranking; out-of-scope questions are now refused by the model (`answerable: false`). `min_rerank_score` is off: on the evaluation set the top reranker score is 0.00-0.09 for unanswerable questions but also below 0.05 for 7 of 38 answerable ones, so any threshold would wrongly refuse more than it saves.
 - **Evaluation covers one book.** 46 questions are enough to compare retrieval strategies, but too few to separate models that differ by a few points.
 
 ## Roadmap
@@ -156,10 +183,10 @@ The two models are effectively tied on accuracy, so the 3B model stays the defau
 - [x] Hybrid retrieval (BM25 + dense)
 - [x] Answer-quality evaluation (refusals + LLM-judged faithfulness)
 - [x] Larger evaluation set (46 questions) with keyword-based answer accuracy
-- [ ] Calibrate `min_rerank_score` using that set
+- [x] Calibrate `min_rerank_score` using that set (result: leave it off, scores do not separate answerable from unanswerable questions)
 - [ ] Query rewriting and parent-document retrieval
 - [ ] Support for more formats (DOCX, Markdown, HTML)
-- [ ] Simple web UI
+- [x] Simple web UI
 
 ## License
 

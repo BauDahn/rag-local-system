@@ -6,3 +6,5 @@ venv/
 data/vector_db/
 .DS_Store
 data/raw/*.pdf
+data/corpora/*/raw/*.pdf
+data/corpora/*/vector_db/

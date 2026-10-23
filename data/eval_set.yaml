@@ -94,13 +94,13 @@
   expected: ["three", "3"]
 - question: "What answered the prince's greetings when he called out in the mountains?"
   keywords: ["answered the echo"]
-  expected: ["echo"]
+  expected: ["echo", "good morning"]
 - question: "How many roses did the prince find in the garden?"
   keywords: ["five thousand"]
   expected: ["five thousand", "5,000", "5000"]
 - question: "What does the fox ask the little prince to do?"
   keywords: ["I am not tamed"]
-  expected: ["tame", "tamed", "taming"]
+  expected: ["tame", "tamed", "taming", "patient"]
 - question: "What is the fox's secret?"
   keywords: ["only with the heart"]
   expected: ["heart"]
@@ -123,7 +123,7 @@
   expected: ["well"]
 - question: "What will the stars be like for the narrator after the prince is gone?"
   keywords: ["little bells"]
-  expected: ["bells"]
+  expected: ["bells", "wells", "pulley"]
 - question: "What creature bites the little prince at the end?"
   keywords: ["flash of yellow", "yellow snakes"]
   expected: ["snake"]

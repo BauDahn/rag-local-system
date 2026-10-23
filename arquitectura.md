@@ -15,7 +15,7 @@ INGESTIÓN (se ejecuta una vez por conjunto de documentos)
 
 CONSULTA (se ejecuta por cada pregunta)
 
- pregunta ─► retrieve.py ─► pipeline.py ─► llm.py (Ollama) ─► pipeline.py ─► respuesta + fuentes
+ pregunta ─► retrieve.py ─► pipeline.py ─► llm.py (Ollama u OpenAI-compat) ─► pipeline.py ─► respuesta + fuentes
               │                │                                  │
               │  denso top-20  │  arma contexto numerado          │  valida citas
               │  BM25  top-20  │  + plantilla de prompt           │  decide "no sé"
@@ -26,11 +26,11 @@ CONSULTA (se ejecuta por cada pregunta)
 
 | Módulo | Responsabilidad | Depende de |
 |---|---|---|
-| `config.py` | Carga `config.yaml` y convierte las rutas a absolutas desde la raíz del repo. | — |
+| `config.py` | Carga un perfil (`config.yaml` o `--config`) y convierte las rutas a absolutas desde la raíz del repo. | — |
 | `ingest.py` | Lee PDFs página por página, los parte en chunks, descarta los casi vacíos y calcula el hash de los PDFs. | pypdf, LangChain splitters |
 | `index.py` | Construye y abre el índice: Chroma (coseno), BM25 y `manifest.json`. Valida que el índice coincida con la config. | ingest, Chroma, rank-bm25 |
 | `retrieve.py` | Busca candidatos (denso + BM25), los fusiona con RRF y los reordena con el reranker. Expone tres modos: `dense`, `hybrid`, `hybrid_rerank`. | index, sentence-transformers |
-| `llm.py` | Cliente de Ollama. Pide la respuesta como JSON con un esquema y traduce los errores a `LLMError`. | ollama |
+| `llm.py` | Backends del LLM (`OllamaLLM`, `OpenAICompatLLM`) con la fábrica `create_llm`. Piden la respuesta como JSON con un esquema y traducen los errores a `LLMError`. | ollama, httpx |
 | `pipeline.py` | Orquesta una pregunta: recuperar, armar el prompt, llamar al LLM, validar citas, devolver `RAGAnswer`. | retrieve, llm, index |
 | `evaluate.py` | Mide retrieval (hit rate, MRR) por modo y, opcionalmente, rechazos y fidelidad de las respuestas. | retrieve, pipeline |
 | `prompts/qa.md` | Plantilla del prompt (secciones `---system---` y `---user---`). | — |
@@ -71,21 +71,24 @@ Cada chunk lleva `source` (archivo), `page` y `chunk_id` (su posición). El `chu
 | **Reingestión total** | Simple y sin duplicados | No es incremental: con muchos documentos tarda más |
 | **Chunking por página** | Las citas son exactas y un chunk nunca mezcla documentos | Una idea que cruza páginas queda partida |
 
-## Configuración (`config.yaml`)
+## Configuración (`config.yaml` y perfiles en `configs/`)
+
+`config.yaml` es el perfil por defecto; cualquier otro se elige con `--config RUTA` en todos los modos (`ingest`, `query`, `eval`, `ui`). Las rutas relativas de `paths` se resuelven contra la raíz del proyecto, no contra la carpeta del perfil. Perfiles incluidos: `configs/dgt.yaml` (corpus en español) y `configs/empresa-multi-gpu.example.yaml` (vLLM con varias GPUs). Ver [docs/despliegue-modelos-grandes.md](docs/despliegue-modelos-grandes.md).
 
 | Sección | Claves | Efecto |
 |---|---|---|
-| `models` | `embedding`, `reranker`, `llm`, `*_device` | Qué modelos se usan y dónde corren. `llm` es una etiqueta de Ollama. |
-| `ollama` | `host`, `timeout` | Dónde está el servidor de Ollama. |
+| `models` | `embedding`, `reranker`, `llm`, `llm_backend`, `*_device` | Qué modelos se usan y dónde corren. `llm_backend` es `ollama` (por defecto) u `openai` (servidor compatible, p. ej. vLLM); `llm` es la etiqueta de Ollama o el nombre del modelo servido. |
+| `ollama` | `host`, `timeout`, `num_ctx`, `keep_alive` | Servidor de Ollama, ventana de contexto y tiempo en memoria. |
+| `llm_server` | `base_url`, `api_key` (o `RAG_LLM_API_KEY`), `timeout` | Servidor compatible con OpenAI (solo con `llm_backend: openai`). |
 | `parameters` | `chunk_size`, `chunk_overlap`, `min_letters` | Cómo se trocea. Cambiarlos exige reingestar (el manifiesto lo detecta). |
 | `parameters` | `k_candidates`, `top_k`, `rrf_k`, `min_rerank_score` | Cuántos candidatos se buscan, cuántos llegan al LLM y el umbral opcional del reranker. |
 | `parameters` | `temperature`, `max_new_tokens` | Generación. Con `0` la respuesta es determinista. |
 | `prompts` | `template`, `fallback` | Qué plantilla de `prompts/` se usa y el texto de rechazo. |
-| `paths` | `raw_data`, `vector_store` | Carpetas de entrada y de índice. |
+| `paths` | `raw_data`, `vector_store`, `eval_set` | Carpetas de entrada y de índice, y preguntas de evaluación (por defecto `data/eval_set.yaml`). |
 
 ## Cómo extender el sistema
 
-- **Cambiar de modelo:** `ollama pull <modelo>` y editar `models.llm`.
+- **Cambiar de modelo:** `ollama pull <modelo>` y editar `models.llm`. Para modelos grandes en varias GPUs, `llm_backend: openai` (ver `docs/despliegue-modelos-grandes.md`); `llm.py` expone `create_llm(config)` y ambos backends comparten `chat_json(messages, schema)`.
 - **Cambiar el prompt:** editar `src/rag/prompts/qa.md` o crear otro archivo y apuntar `prompts.template` a él. Los marcadores `{context}` y `{question}` son obligatorios en la sección de usuario. Si cambiás el formato de salida, hay que actualizar también `ANSWER_SCHEMA` en `llm.py` y la lectura en `pipeline.py`.
 - **Documentos en otro idioma:** usar un embedding multilingüe (por ejemplo `BAAI/bge-m3`) y un reranker multilingüe, y reingestar.
 - **Nuevo formato de documento:** agregar un lector en `ingest.py` que devuelva `Document` con `source` y `page`; el resto no cambia.

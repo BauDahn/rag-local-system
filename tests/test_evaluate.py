@@ -15,3 +15,9 @@ def test_first_relevant_rank_is_one_based():
     texts = ["nothing", "a sheep here", "sheep again"]
     assert first_relevant_rank(texts, ["sheep"]) == 2
     assert first_relevant_rank(texts, ["fox"]) is None
+
+
+def test_contains_keyword_ignores_line_breaks():
+    from src.rag.evaluate import contains_keyword
+
+    assert contains_keyword("separación mínima\nde cinco   metros", ["separación mínima de cinco metros"])

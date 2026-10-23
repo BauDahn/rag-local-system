@@ -3,11 +3,20 @@ models:
   embedding_device: "cpu"                    # "cpu" or "cuda" (4 GB VRAM: keep it free for the LLM)
   reranker: "BAAI/bge-reranker-base"         # Cross-encoder that re-scores the fused candidates
   reranker_device: "cpu"                     # "cpu" or "cuda"
+  llm_backend: "ollama"                      # "ollama" or "openai" (any OpenAI-compatible server, e.g. vLLM; see llm_server)
   llm: "qwen2.5:3b-instruct"                 # Ollama model tag (`ollama pull <tag>`); fits in 4 GB VRAM
 
 ollama:
   host: "http://localhost:11434"
   timeout: 120                               # Seconds to wait for a generation
+  # num_ctx: 4096                            # Context window in tokens (default: Ollama's own, usually small)
+  # keep_alive: "30m"                        # How long Ollama keeps the model in memory after a request
+
+# Only used when models.llm_backend is "openai" (see configs/empresa-multi-gpu.example.yaml)
+# llm_server:
+#   base_url: "http://localhost:8000/v1"
+#   api_key: "EMPTY"                         # or env var RAG_LLM_API_KEY (takes precedence)
+#   timeout: 120
 
 parameters:
   chunk_size: 512
@@ -24,6 +33,8 @@ prompts:
   template: "qa"                             # File name (without .md) in src/rag/prompts/
   fallback: "I do not know based on the provided documents."
 
+# Relative paths are resolved against the project root, not against this file.
 paths:
   raw_data: "data/raw/"
+  eval_set: "data/eval_set.yaml"             # Questions used by `--mode eval` (override with --eval-set)
   vector_store: "data/vector_db/"            # Holds the Chroma DB, the BM25 index and manifest.json

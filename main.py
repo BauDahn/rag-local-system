@@ -11,10 +11,11 @@ def main():
     )
     parser.add_argument(
         "--mode",
-        choices=["ingest", "query", "eval"],
+        choices=["ingest", "query", "eval", "ui"],
         required=True,
         help="'ingest' indexes the PDFs in the raw data directory; 'query' asks questions about them; "
-        "'eval' measures retrieval quality (add --answers to also judge generated answers).",
+        "'eval' measures retrieval quality (add --answers to also judge generated answers); "
+        "'ui' starts a local web interface on http://127.0.0.1:7860.",
     )
     parser.add_argument(
         "--question",
@@ -23,22 +24,30 @@ def main():
         help="Single question (query mode). If omitted, starts an interactive session.",
     )
     parser.add_argument("--answers", action="store_true", help="eval mode: also evaluate generated answers.")
+    parser.add_argument("--config", default=None, help="Config profile, e.g. configs/dgt.yaml (default: config.yaml).")
+    parser.add_argument("--eval-set", default=None, help="eval mode: questions file (default: paths.eval_set in the config).")
     args = parser.parse_args()
 
     if args.mode == "eval":
         from src.rag.evaluate import evaluate_answers, evaluate_retrieval
 
-        evaluate_retrieval()
+        evaluate_retrieval(args.eval_set, args.config)
         if args.answers:
             print("\n=== ANSWERS ===")
-            evaluate_answers()
+            evaluate_answers(args.eval_set, args.config)
+        return
+
+    if args.mode == "ui":
+        from src.rag.ui import launch
+
+        launch(config_path=args.config)
         return
 
     if args.mode == "ingest":
         from src.rag.index import create_index
         from src.rag.ingest import load_and_split_documents
 
-        config = load_config()
+        config = load_config(args.config)
         params = config["parameters"]
         print("\n=== INGESTION ===")
         chunks = load_and_split_documents(
@@ -56,7 +65,7 @@ def main():
     from src.rag.pipeline import RAGPipeline
 
     try:
-        pipeline = RAGPipeline()
+        pipeline = RAGPipeline(args.config)
     except IndexMismatchError as e:
         print(f"[Error] {e}")
         return

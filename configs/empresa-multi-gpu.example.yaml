@@ -1,0 +1,41 @@
+# Ejemplo: servidor con 2 GPUs NVIDIA grandes y un LLM de 32B-70B servido por vLLM.
+# Copiar a configs/empresa.yaml y ajustar. Guía completa: docs/despliegue-modelos-grandes.md
+# Uso: python main.py --config configs/empresa.yaml --mode ingest|query|eval|ui
+models:
+  llm_backend: "openai"                      # habla con cualquier servidor compatible con la API de OpenAI
+  llm: "Qwen/Qwen2.5-32B-Instruct"           # DEBE coincidir con el modelo (o --served-model-name) de vLLM
+  embedding: "BAAI/bge-m3"                   # Multilingüe; cambiarlo exige reingestar
+  embedding_device: "cuda"                   # Hay VRAM de sobra para el embedder...
+  reranker: "BAAI/bge-reranker-v2-m3"
+  reranker_device: "cuda"                    # ...y el reranker. Si vLLM ocupa casi toda la GPU, bajar --gpu-memory-utilization
+
+llm_server:
+  base_url: "http://localhost:8000/v1"       # Raíz de la API de vLLM (termina en /v1)
+  api_key: "EMPTY"                           # Si vLLM se lanza con --api-key, ponerla aquí o en la variable RAG_LLM_API_KEY
+  timeout: 300                               # Segundos por generación; los modelos grandes tardan más
+
+parameters:
+  chunk_size: 800                            # Cambiar tamaño/solape exige reingestar
+  chunk_overlap: 100
+  min_letters: 120
+  temperature: 0                             # 0 = determinista
+  k_candidates: 30                           # Candidatos por recuperador (denso y BM25)
+  top_k: 8                                   # Fragmentos que llegan al LLM; un modelo grande y contexto amplio lo aprovechan
+  rrf_k: 60
+  min_rerank_score: null                     # Calibrar con --mode eval antes de activarlo
+  max_new_tokens: 600                        # Tope de la respuesta
+
+prompts:
+  template: "qa_es"                          # Archivo en src/rag/prompts/ (sin .md); "qa" para inglés
+  fallback: "No lo sé con base en los documentos proporcionados."
+
+# Para Ollama en vez de vLLM, usar llm_backend: "ollama" y esta sección:
+# ollama:
+#   host: "http://localhost:11434"
+#   num_ctx: 16384                           # Ventana de contexto en tokens
+#   keep_alive: "1h"
+
+paths:
+  raw_data: "data/raw/"                      # Relativas a la raíz del proyecto
+  vector_store: "data/vector_db/"            # Usar otra carpeta por perfil si cambia el embedder
+  eval_set: "data/eval_set.yaml"

@@ -1,0 +1,218 @@
+# Evaluation set for the Reglamento General de Circulacion (Real Decreto 1428/2003), BOE consolidated text.
+# Page numbers in the comments are PDF pages of data/corpora/dgt/raw/rgc.pdf (not the BOE printed numbers).
+#
+# Fields:
+#   question     The question asked.
+#   keywords     Retrieval check: a question passes if any top-k chunk contains one of these
+#                (whole-word, case-insensitive). Literal words/figures from the source passage.
+#   expected     Answer check (--answers): the generated answer must contain one of these
+#                (whole-word, case-insensitive). Independent of the LLM judge.
+#   answerable   false marks questions the regulation cannot answer; the system must refuse them.
+
+# --- Alcohol y pruebas (Titulo I, cap. IV) ---
+# Art. 20, p. 16
+- question: "¿Cuál es la tasa máxima de alcohol en aire espirado permitida a un conductor general, en miligramos por litro?"
+  keywords: ["0,25 miligramos", "aire espirado superior"]
+  expected: ["0,25", "cero coma veinticinco"]
+# Art. 20, p. 16
+- question: "¿Durante cuántos años desde la obtención del permiso rige para cualquier conductor la tasa reducida de 0,3 gramos de alcohol por litro de sangre?"
+  keywords: ["dos años siguientes", "obtención del permiso"]
+  expected: ["dos años", "2 años", "dos"]
+# Art. 23.2, p. 17
+- question: "¿Qué tiempo mínimo debe mediar entre la primera y la segunda prueba de alcoholemia si el interesado lo controla?"
+  keywords: ["tiempo mínimo de 10 minutos", "segunda prueba"]
+  expected: ["10 minutos", "diez minutos", "10", "diez"]
+
+# --- Transporte de personas y mercancias (Titulo I, cap. II) ---
+# Art. 12.1, p. 12
+- question: "¿Qué edad mínima debe superar un pasajero que viaja en una motocicleta o ciclomotor, además del conductor, como regla general?"
+  keywords: ["mayor de doce años", "horcajadas"]
+  expected: ["doce", "12"]
+# Art. 12.2, p. 12
+- question: "¿A partir de qué edad pueden viajar excepcionalmente en motocicleta menores conducidos por su padre, madre o tutor?"
+  keywords: ["mayores de siete años", "tutor"]
+  expected: ["siete", "7"]
+# Art. 15.2.a.1, p. 13
+- question: "En un vehículo de mercancías de más de cinco metros, ¿cuánto puede sobresalir por delante y por detrás una carga indivisible como vigas o postes?"
+  keywords: ["vigas, postes", "dos metros por la parte anterior"]
+  expected: ["dos metros", "2 metros", "tres metros", "3 metros"]
+
+# --- Normas generales de los conductores (Titulo I, cap. III) ---
+# Art. 18.1, p. 15
+- question: "¿Qué dispositivo con pantalla se exceptúa expresamente de la prohibición de usar pantallas con acceso a internet o reproductores de vídeo mientras se conduce?"
+  keywords: ["GPS", "reproductores de vídeo"]
+  expected: ["GPS", "navegador"]
+# Art. 18.3, p. 15
+- question: "¿Qué tipo de mecanismos relacionados con los radares quedan excluidos de la prohibición de llevar detectores de radar en el vehículo?"
+  keywords: ["inhibidores de radares", "mecanismos de aviso"]
+  expected: ["aviso", "avisos", "informan"]
+
+# --- Velocidad (Titulo II, cap. II) ---
+# Art. 48.1.a, p. 27
+- question: "¿Cuál es la velocidad máxima genérica para un turismo en autopista o autovía fuera de poblado?"
+  keywords: ["Turismos", "autocaravanas", "Autopista y autovía"]
+  expected: ["120", "ciento veinte"]
+# Art. 48.1.a.1.º, p. 27
+- question: "En carreteras convencionales con separación física de los dos sentidos, ¿qué límite máximo puede fijar el titular de la vía para turismos y motocicletas?"
+  keywords: ["separación física", "titular de la vía"]
+  expected: ["100", "cien"]
+# Art. 48.1.b, p. 27
+- question: "¿Cuántos kilómetros por hora se reduce la velocidad máxima de los vehículos de transporte escolar y de menores o de mercancías peligrosas?"
+  keywords: ["transporte escolar", "mercancías peligrosas", "reducirá"]
+  expected: ["10", "diez"]
+# Art. 48.1.b, p. 28
+- question: "¿Cuál es la velocidad máxima fuera de poblado de un autobús en el que viajan pasajeros de pie porque está autorizado?"
+  keywords: ["pasajeros de pie", "autobús"]
+  expected: ["80", "ochenta"]
+# Art. 49.1, p. 28
+- question: "¿Por debajo de qué velocidad, en kilómetros por hora, se prohíbe circular en autopistas y autovías con vehículos a motor?"
+  keywords: ["anormalmente reducida", "autopistas y autovías"]
+  expected: ["60", "sesenta"]
+# Art. 50.1.a, p. 28
+- question: "¿Cuál es el límite genérico de velocidad en vías urbanas que disponen de plataforma única de calzada y acera?"
+  keywords: ["plataforma única", "calzada y acera"]
+  expected: ["20", "veinte"]
+# Art. 50.1.b, p. 29
+- question: "¿Cuál es el límite genérico de velocidad en vías urbanas de un único carril por sentido de circulación?"
+  keywords: ["único carril", "por sentido de circulación"]
+  expected: ["30", "treinta"]
+# Art. 54.2, p. 30
+- question: "¿Qué separación mínima deben guardar los vehículos de más de 3.500 kilogramos o de más de 10 metros de longitud total respecto al que les precede, sin señalar adelantamiento?"
+  keywords: ["separación mínima de 50 metros", "10 metros de longitud total"]
+  expected: ["50", "cincuenta"]
+
+# --- Prioridad de paso (Titulo II, cap. III) ---
+# Art. 61.3, p. 32
+- question: "¿Por debajo de qué anchura de calzada no pueden cruzarse en un puente los vehículos que necesitan autorización especial para circular?"
+  keywords: ["autorización especial", "seis metros"]
+  expected: ["seis metros", "6 metros", "seis", "6"]
+# Art. 63.1, p. 33
+- question: "¿Qué inclinación mínima tienen los tramos que se consideran de gran pendiente?"
+  keywords: ["gran pendiente", "siete por ciento"]
+  expected: ["siete por ciento", "7 por ciento", "7%", "siete", "7"]
+# Art. 62.1, p. 33
+- question: "En el orden de preferencia en ausencia de señalización cuando un vehículo tiene que dar marcha atrás, ¿qué vehículos ocupan el último lugar de la lista?"
+  keywords: ["motocicletas con sidecar", "mismo tipo"]
+  expected: ["bicicletas", "motocicletas"]
+# Art. 66.2, p. 34
+- question: "¿Qué inscripción llevan los paneles complementarios que señalizan las cañadas o pasos de ganado de carácter general?"
+  keywords: ["cañada", "animales domésticos"]
+  expected: ["cañada"]
+# Art. 68.2, p. 35
+- question: "¿Qué dos señales deben utilizar simultáneamente los vehículos de policía, bomberos o sanitarios para tener carácter de prioritarios?"
+  keywords: ["señal luminosa", "señales acústicas especiales"]
+  expected: ["luminosa", "acústica", "acústicas"]
+
+# --- Marcha atras, adelantamiento y parada (Titulo II, cap. VI-VIII) ---
+# Art. 80.2, p. 39
+- question: "¿Cuál es el recorrido máximo hacia atrás permitido como maniobra complementaria de la parada, el estacionamiento o la incorporación a la circulación?"
+  keywords: ["15 metros", "maniobra complementaria"]
+  expected: ["15", "quince"]
+# Art. 85.4, p. 41
+- question: "¿Qué anchura de seguridad mínima debe guardarse al adelantar a ciclistas, peatones o vehículos de movilidad personal?"
+  keywords: ["anchura de seguridad", "conjunto de ciclistas"]
+  expected: ["1,5", "1,50", "metro y medio", "uno coma cinco"]
+# Art. 85.4, p. 41
+- question: "Fuera de poblado, ¿en cuántos kilómetros por hora debe reducir como mínimo su velocidad respecto al límite de la vía quien adelanta a un ciclista?"
+  keywords: ["reducir la velocidad", "estabilidad y seguridad"]
+  expected: ["20", "veinte"]
+# Art. 91.2.a, p. 43
+- question: "¿Por debajo de qué distancia entre el vehículo y el borde opuesto de la calzada se considera que una parada o estacionamiento es en lugar peligroso?"
+  keywords: ["inferior a tres metros", "borde opuesto"]
+  expected: ["tres metros", "3 metros", "tres", "3"]
+
+# --- Pasos a nivel, tuneles y alumbrado (Titulo II, cap. IX-X) ---
+# Art. 95.6, p. 46
+- question: "En un túnel, si no se pretende adelantar, ¿qué distancia de seguridad mínima debe mantenerse con el vehículo precedente (o qué intervalo en segundos)?"
+  keywords: ["al menos, 100 metros", "cuatro segundos"]
+  expected: ["100 metros", "cien metros", "cuatro segundos", "4 segundos"]
+# Art. 95.6, p. 46
+- question: "En un túnel, ¿qué distancia de seguridad mínima deben mantener los vehículos de masa máxima autorizada superior a 3.500 kilogramos?"
+  keywords: ["150 metros", "seis segundos"]
+  expected: ["150", "ciento cincuenta", "seis segundos", "6 segundos"]
+# Art. 100.3, p. 47
+- question: "¿A qué distancia no se puede leer la placa de matrícula en una vía que se considera insuficientemente iluminada?"
+  keywords: ["insuficientemente iluminada", "placa de matrícula"]
+  expected: ["10 metros", "diez metros"]
+
+# --- Otras normas de circulacion (Titulo III) ---
+# Art. 115.2, p. 51
+- question: "¿Cuánto tiempo detenido en un túnel obliga al conductor a apagar el motor?"
+  keywords: ["superior a dos minutos", "interrumpir el funcionamiento del motor"]
+  expected: ["dos minutos", "2 minutos", "dos"]
+# Art. 117.1, p. 52
+- question: "¿Qué estatura máxima, en centímetros, obliga a los menores a utilizar sistemas de retención infantil?"
+  keywords: ["135 centímetros", "retención infantil"]
+  expected: ["135", "ciento treinta y cinco"]
+# Art. 118.2, p. 53
+- question: "¿Qué menores están obligados a usar casco de protección en bicicleta en todo tipo de vías?"
+  keywords: ["menores de dieciséis años", "casco de protección"]
+  expected: ["dieciséis", "16"]
+# Art. 122.1, p. 54
+- question: "Si no existe zona peatonal practicable, ¿por qué arcén deben circular los peatones en el sentido de su marcha?"
+  keywords: ["arcén izquierdo", "zona peatonal practicable"]
+  expected: ["izquierdo", "izquierda"]
+# Art. 123.1, p. 55
+- question: "¿A qué distancia mínima debe ser visible el elemento luminoso o reflectante que lleva un peatón por una vía interurbana de noche?"
+  keywords: ["150 metros", "elemento luminoso o reflectante"]
+  expected: ["150", "ciento cincuenta"]
+# Art. 127.1, p. 56
+- question: "¿Qué edad mínima debe tener la persona que conduce animales de tiro, carga, silla o ganado por la vía?"
+  keywords: ["mayor de 18 años", "dominarlos"]
+  expected: ["18", "dieciocho"]
+
+# --- Normas urbanas (Titulo VI) ---
+# Art. 152.1, p. 66
+- question: "¿Hasta qué edad pueden las ordenanzas municipales permitir que los niños circulen en bicicleta por las aceras, si van a cargo de un adulto a pie?"
+  keywords: ["hasta doce años", "adulto"]
+  expected: ["doce", "12"]
+# Art. 153.4, p. 66
+- question: "¿Qué separación mínima deben dejar los vehículos a motor con los ciclistas que les preceden en el mismo carril?"
+  keywords: ["separación mínima de cinco metros", "que les precedan"]
+  expected: ["cinco metros", "5 metros", "cinco", "5"]
+# Art. 155.3, p. 67
+- question: "¿Qué menores no pueden conducir vehículos de movilidad personal?"
+  keywords: ["quince años"]
+  expected: ["quince", "15"]
+
+# --- Anexos con texto ---
+# Anexo I, 4.1.b (semaforos de peatones), p. 80
+- question: "¿Qué indica a los peatones que la luz verde del semáforo pase a intermitente?"
+  keywords: ["intermitente", "peatón en marcha"]
+  expected: ["finalizar", "terminar", "acabar", "acaba", "agota", "rojo"]
+# Anexo II, art. 2.3 (pruebas deportivas), p. 719
+- question: "¿Con cuánta antelación mínima debe presentarse la solicitud de autorización especial para celebrar una prueba deportiva en la vía?"
+  keywords: ["30 días de antelación", "pruebas deportivas"]
+  expected: ["30 días", "treinta días", "30", "treinta"]
+# Anexo III, apartado de velocidades (vehiculos en regimen de transporte especial), p. 727
+- question: "¿Cuál es la velocidad máxima de circulación de un vehículo en régimen de transporte especial con autorización genérica?"
+  keywords: ["autorización genérica"]
+  expected: ["70", "setenta"]
+# Anexo III (vehiculos de anchura superior a cinco metros), p. 727
+- question: "¿Con cuántas horas de antelación mínima debe avisar el titular a los agentes de tráfico del viaje de un vehículo especial cuya anchura supere los cinco metros?"
+  keywords: ["72 horas", "cinco m"]
+  expected: ["72", "setenta y dos"]
+# Anexo III (movimiento de convoyes militares), p. 729
+- question: "¿Con cuánta antelación mínima, salvo urgencia, debe comunicar la autoridad militar a la Jefatura Central de Tráfico el itinerario y horario de un convoy militar?"
+  keywords: ["autoridad militar", "48 horas"]
+  expected: ["48", "cuarenta y ocho"]
+
+# --- No respondibles (el reglamento no contiene esa informacion) ---
+- question: "¿Cuál es el importe en euros de la multa por superar el límite de velocidad?"
+  answerable: false
+- question: "¿Cuántos puntos del carné se pierden por usar el teléfono móvil mientras se conduce?"
+  answerable: false
+- question: "¿Qué profundidad mínima debe tener el dibujo de los neumáticos de un turismo?"
+  answerable: false
+- question: "¿A qué edad se puede obtener el permiso de conducir de la clase B?"
+  answerable: false
+- question: "¿Cada cuántos años debe pasar la ITV un turismo particular?"
+  answerable: false
+- question: "¿Cuánto cuesta de media el seguro obligatorio de un turismo?"
+  answerable: false
+- question: "¿Es obligatorio llevar un extintor de incendios en un turismo?"
+  answerable: false
+- question: "¿Cuál es la capital de Francia?"
+  answerable: false
+- question: "¿Cómo se prepara una tortilla de patatas?"
+  answerable: false
